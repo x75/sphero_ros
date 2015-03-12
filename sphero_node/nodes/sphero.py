@@ -33,8 +33,8 @@
 
 import rospy
 
-import math, argparse
-import sys
+import math
+import sys, os, argparse
 import tf
 import PyKDL
 
@@ -93,17 +93,29 @@ class SpheroNode(object):
         self.power_state = 0
 
     def _init_pubsub(self):
-        self.odom_pub = rospy.Publisher('odom', Odometry, queue_size=1)
-        self.imu_pub = rospy.Publisher('imu', Imu, queue_size=1)
-        self.collision_pub = rospy.Publisher('collision', SpheroCollision, queue_size=1)
-        self.diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=1)
-        self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel, queue_size = 1)
-        self.cmd_vel_raw_sub = rospy.Subscriber('cmd_vel_raw', Twist, self.cmd_vel_raw, queue_size = 1)
-        self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color, queue_size = 1)
-        self.back_led_sub = rospy.Subscriber('set_back_led', Float32, self.set_back_led, queue_size = 1)
-        self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization, queue_size = 1)
-        self.heading_sub = rospy.Subscriber('set_heading', Float32, self.set_heading, queue_size = 1)
-        self.angular_velocity_sub = rospy.Subscriber('set_angular_velocity', Float32, self.set_angular_velocity, queue_size = 1)
+        self.odom_pub = rospy.Publisher('odom', Odometry)
+        self.imu_pub = rospy.Publisher('imu', Imu)
+        self.collision_pub = rospy.Publisher('collision', SpheroCollision)
+        self.diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray)
+        # subs
+        if os.environ["ROS_DISTRO"] == "hydro":
+            print "running hydro"
+            self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel)
+            self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color)
+            self.cmd_vel_raw_sub = rospy.Subscriber('cmd_vel_raw', Twist, self.cmd_vel_raw)
+            self.back_led_sub = rospy.Subscriber('set_back_led', Float32, self.set_back_led)
+            self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization)
+            self.heading_sub = rospy.Subscriber('set_heading', Float32, self.set_heading)
+            self.angular_velocity_sub = rospy.Subscriber('set_angular_velocity', Float32, self.set_angular_velocity)
+        else:
+            self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel, queue_size = 1)
+            self.cmd_vel_raw_sub = rospy.Subscriber('cmd_vel_raw', Twist, self.cmd_vel_raw, queue_size = 1)
+            self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color, queue_size = 1)
+            self.back_led_sub = rospy.Subscriber('set_back_led', Float32, self.set_back_led, queue_size = 1)
+            self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization, queue_size = 1)
+            self.heading_sub = rospy.Subscriber('set_heading', Float32, self.set_heading, queue_size = 1)
+            self.angular_velocity_sub = rospy.Subscriber('set_angular_velocity', Float32, self.set_angular_velocity, queue_size = 1)
+        # other
         self.reconfigure_srv = dynamic_reconfigure.server.Server(ReconfigConfig, self.reconfigure)
         self.transform_broadcaster = tf.TransformBroadcaster()
 
@@ -266,13 +278,17 @@ class SpheroNode(object):
                 self.robot.set_stablization(0, False)
 
     def set_heading(self, msg):
+        print "sphero:set_heading:msg", msg
         if self.is_connected:
             heading_deg = int(self.normalize_angle_positive(msg.data)*180.0/math.pi)
+            print "sphero:set_heading:heading_deg", heading_deg
             self.robot.set_heading(heading_deg, False)
 
     def set_angular_velocity(self, msg):
+        print "sphero:set_angular_velocity:msg", msg
         if self.is_connected:
             rate = int((msg.data*180/math.pi)/0.784)
+            print "sphero:set_angular_velocity:rate", rate
             self.robot.set_rotation_rate(rate, False)
 
     def configure_collision_detect(self, msg):
@@ -285,6 +301,7 @@ class SpheroNode(object):
 
         
 if __name__ == '__main__':
+<<<<<<< HEAD
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--freq", help="update frequency", default=50)
 
