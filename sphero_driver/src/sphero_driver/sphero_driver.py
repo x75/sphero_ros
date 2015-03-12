@@ -804,7 +804,7 @@ class Sphero(threading.Thread):
       data = self.raw_data_buf
       while len(data)>5:
         if data[:2] == RECV['SYNC']:
-          #print "got response packet"
+          print "got response packet"
           # response packet
           data_length = ord(data[4])
           if data_length+5 <= len(data):
@@ -812,7 +812,7 @@ class Sphero(threading.Thread):
             data = data[(5+data_length):]
           else:
             break
-            #print "Response packet", self.data2hexstr(data_packet)
+          print "Response packet", self.data2hexstr(data_packet)
          
         elif data[:2] == RECV['ASYNC']:
           data_length = (ord(data[3])<<8)+ord(data[4])

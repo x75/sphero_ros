@@ -34,7 +34,7 @@
 import rospy
 
 import math
-import sys
+import sys, os
 import tf
 import PyKDL
 
@@ -97,12 +97,23 @@ class SpheroNode(object):
         self.imu_pub = rospy.Publisher('imu', Imu)
         self.collision_pub = rospy.Publisher('collision', SpheroCollision)
         self.diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray)
-        self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel, queue_size = 1)
-        self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color, queue_size = 1)
-        self.back_led_sub = rospy.Subscriber('set_back_led', Float32, self.set_back_led, queue_size = 1)
-        self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization, queue_size = 1)
-        self.heading_sub = rospy.Subscriber('set_heading', Float32, self.set_heading, queue_size = 1)
-        self.angular_velocity_sub = rospy.Subscriber('set_angular_velocity', Float32, self.set_angular_velocity, queue_size = 1)
+        # subs
+        if os.environ["ROS_DISTRO"] == "hydro":
+            print "running hydro"
+            self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel)
+            self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color)
+            self.back_led_sub = rospy.Subscriber('set_back_led', Float32, self.set_back_led)
+            self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization)
+            self.heading_sub = rospy.Subscriber('set_heading', Float32, self.set_heading)
+            self.angular_velocity_sub = rospy.Subscriber('set_angular_velocity', Float32, self.set_angular_velocity)
+        else:
+            self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel, queue_size = 1)
+            self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color, queue_size = 1)
+            self.back_led_sub = rospy.Subscriber('set_back_led', Float32, self.set_back_led, queue_size = 1)
+            self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization, queue_size = 1)
+            self.heading_sub = rospy.Subscriber('set_heading', Float32, self.set_heading, queue_size = 1)
+            self.angular_velocity_sub = rospy.Subscriber('set_angular_velocity', Float32, self.set_angular_velocity, queue_size = 1)
+        # other
         self.reconfigure_srv = dynamic_reconfigure.server.Server(ReconfigConfig, self.reconfigure)
         self.transform_broadcaster = tf.TransformBroadcaster()
 
@@ -218,7 +229,12 @@ class SpheroNode(object):
             odom = Odometry(header=rospy.Header(frame_id="odom"), child_frame_id='base_footprint')
             odom.header.stamp = now
             odom.pose.pose = Pose(Point(data["ODOM_X"]/100.0,data["ODOM_Y"]/100.0,0.0), Quaternion(0.0,0.0,0.0,1.0))
-            odom.twist.twist = Twist(Vector3(data["VELOCITY_X"]/1000.0, 0, 0), Vector3(0, 0, data["GYRO_Z_FILTERED"]*10.0*math.pi/180.0))
+            # odom.twist.twist = Twist(Vector3(data["VELOCITY_X"]/1000.0, 0, 0), Vector3(0, 0, data["GYRO_Z_FILTERED"]*10.0*math.pi/180.0))
+            gyrof = 10.0*math.pi/180.0
+            odom.twist.twist = Twist(Vector3(data["VELOCITY_X"]/1000.0,
+                data["VELOCITY_Y"]/1000.0, 0),
+                Vector3(data["GYRO_H_FILTERED"]*gyrof, data["GYRO_M_FILTERED"]*gyrof,
+                data["GYRO_L_FILTERED"]*gyrof))
             odom.pose.covariance =self.ODOM_POSE_COVARIANCE                
             odom.twist.covariance =self.ODOM_TWIST_COVARIANCE
             self.odom_pub.publish(odom)                      
@@ -251,13 +267,17 @@ class SpheroNode(object):
                 self.robot.set_stablization(0, False)
 
     def set_heading(self, msg):
+        print "sphero:set_heading:msg", msg
         if self.is_connected:
             heading_deg = int(self.normalize_angle_positive(msg.data)*180.0/math.pi)
+            print "sphero:set_heading:heading_deg", heading_deg
             self.robot.set_heading(heading_deg, False)
 
     def set_angular_velocity(self, msg):
+        print "sphero:set_angular_velocity:msg", msg
         if self.is_connected:
             rate = int((msg.data*180/math.pi)/0.784)
+            print "sphero:set_angular_velocity:rate", rate
             self.robot.set_rotation_rate(rate, False)
 
     def configure_collision_detect(self, msg):
@@ -270,7 +290,9 @@ class SpheroNode(object):
 
         
 if __name__ == '__main__':
-    s = SpheroNode()
+    # s = SpheroNode(40)
+    # s = SpheroNode(20)
+    s = SpheroNode(10)
     s.start()
     s.spin()
     s.stop()
