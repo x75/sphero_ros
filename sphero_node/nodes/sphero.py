@@ -33,7 +33,7 @@
 
 import rospy
 
-import math
+import math, argparse
 import sys
 import tf
 import PyKDL
@@ -93,11 +93,12 @@ class SpheroNode(object):
         self.power_state = 0
 
     def _init_pubsub(self):
-        self.odom_pub = rospy.Publisher('odom', Odometry)
-        self.imu_pub = rospy.Publisher('imu', Imu)
-        self.collision_pub = rospy.Publisher('collision', SpheroCollision)
-        self.diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray)
+        self.odom_pub = rospy.Publisher('odom', Odometry, queue_size=1)
+        self.imu_pub = rospy.Publisher('imu', Imu, queue_size=1)
+        self.collision_pub = rospy.Publisher('collision', SpheroCollision, queue_size=1)
+        self.diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=1)
         self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel, queue_size = 1)
+        self.cmd_vel_raw_sub = rospy.Subscriber('cmd_vel_raw', Twist, self.cmd_vel_raw, queue_size = 1)
         self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color, queue_size = 1)
         self.back_led_sub = rospy.Subscriber('set_back_led', Float32, self.set_back_led, queue_size = 1)
         self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization, queue_size = 1)
@@ -218,7 +219,12 @@ class SpheroNode(object):
             odom = Odometry(header=rospy.Header(frame_id="odom"), child_frame_id='base_footprint')
             odom.header.stamp = now
             odom.pose.pose = Pose(Point(data["ODOM_X"]/100.0,data["ODOM_Y"]/100.0,0.0), Quaternion(0.0,0.0,0.0,1.0))
-            odom.twist.twist = Twist(Vector3(data["VELOCITY_X"]/1000.0, 0, 0), Vector3(0, 0, data["GYRO_Z_FILTERED"]*10.0*math.pi/180.0))
+            # odom.twist.twist = Twist(Vector3(data["VELOCITY_X"]/1000.0, 0.0, 0.0),
+            #                          Vector3(0, 0, data["GYRO_Z_FILTERED"]*10.0*math.pi/180.0))
+            gyrof = 10.0 * math.pi / 180.0
+            odom.twist.twist = Twist(Vector3(data["VELOCITY_X"]/1000.0, data["VELOCITY_Y"]/1000.0, 0.0),
+                                     Vector3(data["GYRO_H_FILTERED"]*gyrof, data["GYRO_M_FILTERED"]*gyrof,
+                                             data["GYRO_L_FILTERED"]*gyrof))
             odom.pose.covariance =self.ODOM_POSE_COVARIANCE                
             odom.twist.covariance =self.ODOM_TWIST_COVARIANCE
             self.odom_pub.publish(odom)                      
@@ -228,11 +234,20 @@ class SpheroNode(object):
                 (data["QUATERNION_Q0"], data["QUATERNION_Q1"], data["QUATERNION_Q2"], data["QUATERNION_Q3"]),
                 odom.header.stamp, "base_link", "base_footprint")
 
+    def cmd_vel_raw(self, msg):
+        if self.is_connected:
+            self.last_cmd_vel_time = rospy.Time.now()
+            self.cmd_heading = int(msg.angular.z * 360) % 360
+            self.cmd_speed = msg.linear.x #
+            print "cmd_vel_raw: speed=%d, heading=%d" % (self.cmd_speed, self.cmd_heading)
+            self.robot.roll(int(self.cmd_speed), int(self.cmd_heading), 1, False)
+    
     def cmd_vel(self, msg):
         if self.is_connected:
             self.last_cmd_vel_time = rospy.Time.now()
             self.cmd_heading = self.normalize_angle_positive(math.atan2(msg.linear.x,msg.linear.y))*180/math.pi
             self.cmd_speed = math.sqrt(math.pow(msg.linear.x,2)+math.pow(msg.linear.y,2))
+            print "cmd_vel: speed=%d, heading=%d" % (self.cmd_speed, self.cmd_heading)
             self.robot.roll(int(self.cmd_speed), int(self.cmd_heading), 1, False)
     
     def set_color(self, msg):
@@ -270,7 +285,13 @@ class SpheroNode(object):
 
         
 if __name__ == '__main__':
-    s = SpheroNode()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--freq", help="update frequency", default=50)
+
+    args = parser.parse_args()
+    # sphero_freq = 50
+    print "sphero_freq = %d" % int(args.freq)
+    s = SpheroNode(int(args.freq))
     s.start()
     s.spin()
     s.stop()
