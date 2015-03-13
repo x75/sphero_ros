@@ -301,7 +301,6 @@ class SpheroNode(object):
 
         
 if __name__ == '__main__':
-<<<<<<< HEAD
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--freq", help="update frequency", default=50)
 
