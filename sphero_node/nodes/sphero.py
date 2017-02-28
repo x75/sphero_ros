@@ -72,15 +72,16 @@ class SpheroNode(object):
                              0, 0, 0, 0, 1e6, 0,
                              0, 0, 0, 0, 0, 1e3]
 
-    def __init__(self, default_update_rate=50.0):
+    def __init__(self, args):
         rospy.init_node('sphero')
-        self.update_rate = default_update_rate
+        self.update_rate = args.freq
+        self.target_addr = args.target_addr
         self.sampling_divisor = int(400/self.update_rate)
 
         self.is_connected = False
         self._init_pubsub()
         self._init_params()
-        self.robot = sphero_driver.Sphero()
+        self.robot = sphero_driver.Sphero(target_addr = self.target_addr)
         self.imu = Imu()
         self.imu.orientation_covariance = [1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 1e-6]
         self.imu.angular_velocity_covariance = [1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 1e-6]
@@ -302,12 +303,12 @@ class SpheroNode(object):
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--freq", help="update frequency", default=50)
-
+    parser.add_argument("-f", "--freq", help="update frequency", type=float, default=50)
+    parser.add_argument("-ta", "--target_addr", help="Target BT address to connect to directly", type=str, default=None)
     args = parser.parse_args()
     # sphero_freq = 50
     print "sphero_freq = %d" % int(args.freq)
-    s = SpheroNode(int(args.freq))
+    s = SpheroNode(args)
     s.start()
     s.spin()
     s.stop()
