@@ -94,13 +94,9 @@ class SpheroNode(object):
         self.power_state = 0
 
     def _init_pubsub(self):
-        self.odom_pub = rospy.Publisher('odom', Odometry)
-        self.imu_pub = rospy.Publisher('imu', Imu)
-        self.collision_pub = rospy.Publisher('collision', SpheroCollision)
-        self.diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray)
-        # subs
         if os.environ["ROS_DISTRO"] == "hydro":
             print "running hydro"
+            # subs
             self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel)
             self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color)
             self.cmd_vel_raw_sub = rospy.Subscriber('cmd_vel_raw', Twist, self.cmd_vel_raw)
@@ -108,7 +104,13 @@ class SpheroNode(object):
             self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization)
             self.heading_sub = rospy.Subscriber('set_heading', Float32, self.set_heading)
             self.angular_velocity_sub = rospy.Subscriber('set_angular_velocity', Float32, self.set_angular_velocity)
+            # pubs
+            self.odom_pub = rospy.Publisher('odom', Odometry)
+            self.imu_pub = rospy.Publisher('imu', Imu)
+            self.collision_pub = rospy.Publisher('collision', SpheroCollision)
+            self.diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray)
         else:
+            # subs
             self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel, queue_size = 1)
             self.cmd_vel_raw_sub = rospy.Subscriber('cmd_vel_raw', Twist, self.cmd_vel_raw, queue_size = 1)
             self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color, queue_size = 1)
@@ -116,6 +118,11 @@ class SpheroNode(object):
             self.stabilization_sub = rospy.Subscriber('disable_stabilization', Bool, self.set_stabilization, queue_size = 1)
             self.heading_sub = rospy.Subscriber('set_heading', Float32, self.set_heading, queue_size = 1)
             self.angular_velocity_sub = rospy.Subscriber('set_angular_velocity', Float32, self.set_angular_velocity, queue_size = 1)
+            # pubs
+            self.odom_pub = rospy.Publisher('odom', Odometry, queue_size = 1)
+            self.imu_pub = rospy.Publisher('imu', Imu, queue_size = 1)
+            self.collision_pub = rospy.Publisher('collision', SpheroCollision, queue_size = 1)
+            self.diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size = 1)
         # other
         self.reconfigure_srv = dynamic_reconfigure.server.Server(ReconfigConfig, self.reconfigure)
         self.transform_broadcaster = tf.TransformBroadcaster()
