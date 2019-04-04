@@ -259,11 +259,11 @@ class Sphero(threading.Thread):
 
   def create_mask_list(self, mask1, mask2):
     #save the mask
-    sorted_STRM1 = sorted(STRM_MASK1.iteritems(), key=operator.itemgetter(1), reverse=True)
+    sorted_STRM1 = sorted(iter(STRM_MASK1.items()), key=operator.itemgetter(1), reverse=True)
     #create a list containing the keys that are part of the mask
     self.mask_list1 = [key  for key, value in sorted_STRM1 if value & mask1]
 
-    sorted_STRM2 = sorted(STRM_MASK2.iteritems(), key=operator.itemgetter(1), reverse=True)
+    sorted_STRM2 = sorted(iter(STRM_MASK2.items()), key=operator.itemgetter(1), reverse=True)
     #create a list containing the keys that are part of the mask
     self.mask_list2 = [key  for key, value in sorted_STRM2 if value & mask2]
     self.mask_list = self.mask_list1 + self.mask_list2
@@ -567,10 +567,10 @@ class Sphero(threading.Thread):
     """
     mask1 = 0
     mask2 = 0
-    for key,value in STRM_MASK1.iteritems():
+    for key,value in STRM_MASK1.items():
       if 'FILTERED' in key:
         mask1 = mask1|value
-    for value in STRM_MASK2.itervalues():
+    for value in STRM_MASK2.values():
         mask2 = mask2|value
     self.set_data_strm(sample_div, sample_frames, mask1, pcnt, mask2, response)
 
@@ -586,10 +586,10 @@ class Sphero(threading.Thread):
     """
     mask1 = 0
     mask2 = 0
-    for key,value in STRM_MASK1.iteritems():
+    for key,value in STRM_MASK1.items():
       if 'RAW' in key:
         mask1 = mask1|value
-    for value in STRM_MASK2.itervalues():
+    for value in STRM_MASK2.values():
         mask2 = mask2|value
     self.set_data_strm(sample_div, sample_frames, mask1, pcnt, mask2, response)
 
@@ -606,9 +606,9 @@ class Sphero(threading.Thread):
     """
     mask1 = 0
     mask2 = 0
-    for value in STRM_MASK1.itervalues():
+    for value in STRM_MASK1.values():
         mask1 = mask1|value
-    for value in STRM_MASK2.itervalues():
+    for value in STRM_MASK2.values():
         mask2 = mask2|value
     self.set_data_strm(sample_div, sample_frames, mask1, pcnt, mask2, response)
 
@@ -807,7 +807,7 @@ class Sphero(threading.Thread):
       data = self.raw_data_buf
       while len(data)>5:
         if data[:2] == RECV['SYNC']:
-          print "got response packet"
+          print("got response packet")
           # response packet
           data_length = ord(data[4])
           if data_length+5 <= len(data):
@@ -815,7 +815,7 @@ class Sphero(threading.Thread):
             data = data[(5+data_length):]
           else:
             break
-          print "Response packet", self.data2hexstr(data_packet)
+          print("Response packet", self.data2hexstr(data_packet))
          
         elif data[:2] == RECV['ASYNC']:
           data_length = (ord(data[3])<<8)+ord(data[4])
@@ -825,14 +825,14 @@ class Sphero(threading.Thread):
           else:
             # the remainder of the packet isn't long enough
             break
-          if data_packet[2]==IDCODE['DATA_STRM'] and self._async_callback_dict.has_key(IDCODE['DATA_STRM']):
+          if data_packet[2]==IDCODE['DATA_STRM'] and IDCODE['DATA_STRM'] in self._async_callback_dict:
             self._async_callback_dict[IDCODE['DATA_STRM']](self.parse_data_strm(data_packet, data_length))
-          elif data_packet[2]==IDCODE['COLLISION'] and self._async_callback_dict.has_key(IDCODE['COLLISION']):
+          elif data_packet[2]==IDCODE['COLLISION'] and IDCODE['COLLISION'] in self._async_callback_dict:
             self._async_callback_dict[IDCODE['COLLISION']](self.parse_collision_detect(data_packet, data_length))
-          elif data_packet[2]==IDCODE['PWR_NOTIFY'] and self._async_callback_dict.has_key(IDCODE['PWR_NOTIFY']):
+          elif data_packet[2]==IDCODE['PWR_NOTIFY'] and IDCODE['PWR_NOTIFY'] in self._async_callback_dict:
             self._async_callback_dict[IDCODE['PWR_NOTIFY']](self.parse_pwr_notify(data_packet, data_length))
           else:
-            print "got a packet that isn't streaming: " + self.data2hexstr(data)
+            print("got a packet that isn't streaming: " + self.data2hexstr(data))
         else:
           raise RuntimeError("Bad SOF : " + self.data2hexstr(data))
           # print "Bad SOF : " + self.data2hexstr(data)

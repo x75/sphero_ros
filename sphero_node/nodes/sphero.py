@@ -95,7 +95,7 @@ class SpheroNode(object):
 
     def _init_pubsub(self):
         if os.environ["ROS_DISTRO"] == "hydro":
-            print "running hydro"
+            print("running hydro")
             # subs
             self.cmd_vel_sub = rospy.Subscriber('cmd_vel', Twist, self.cmd_vel)
             self.color_sub = rospy.Subscriber('set_color', ColorRGBA, self.set_color)
@@ -261,7 +261,7 @@ class SpheroNode(object):
             self.last_cmd_vel_time = rospy.Time.now()
             self.cmd_heading = int(msg.angular.z * 360) % 360
             self.cmd_speed = msg.linear.x #
-            print "cmd_vel_raw: speed=%d, heading=%d" % (self.cmd_speed, self.cmd_heading)
+            print("cmd_vel_raw: speed=%d, heading=%d" % (self.cmd_speed, self.cmd_heading))
             self.robot.roll(int(self.cmd_speed), int(self.cmd_heading), 1, False)
 
     def cmd_raw_motors(self, msg):
@@ -287,7 +287,7 @@ class SpheroNode(object):
             self.last_cmd_vel_time = rospy.Time.now()
             self.cmd_heading = self.normalize_angle_positive(math.atan2(msg.linear.x,msg.linear.y))*180/math.pi
             self.cmd_speed = math.sqrt(math.pow(msg.linear.x,2)+math.pow(msg.linear.y,2))
-            print "cmd_vel: speed=%d, heading=%d" % (self.cmd_speed, self.cmd_heading)
+            print("cmd_vel: speed=%d, heading=%d" % (self.cmd_speed, self.cmd_heading))
             self.robot.roll(int(self.cmd_speed), int(self.cmd_heading), 1, False)
     
     def set_color(self, msg):
@@ -306,17 +306,17 @@ class SpheroNode(object):
                 self.robot.set_stablization(0, False)
 
     def set_heading(self, msg):
-        print "sphero:set_heading:msg", msg
+        print("sphero:set_heading:msg", msg)
         if self.is_connected:
             heading_deg = int(self.normalize_angle_positive(msg.data)*180.0/math.pi)
-            print "sphero:set_heading:heading_deg", heading_deg
+            print("sphero:set_heading:heading_deg", heading_deg)
             self.robot.set_heading(heading_deg, False)
 
     def set_angular_velocity(self, msg):
-        print "sphero:set_angular_velocity:msg", msg
+        print("sphero:set_angular_velocity:msg", msg)
         if self.is_connected:
             rate = int((msg.data*180/math.pi)/0.784)
-            print "sphero:set_angular_velocity:rate", rate
+            print("sphero:set_angular_velocity:rate", rate)
             self.robot.set_rotation_rate(rate, False)
 
     def configure_collision_detect(self, msg):
@@ -334,7 +334,7 @@ if __name__ == '__main__':
     parser.add_argument("-ta", "--target_addr", help="Target BT address to connect to directly", type=str, default=None)
     args = parser.parse_args()
     # sphero_freq = 50
-    print "sphero_freq = %d" % int(args.freq)
+    print("sphero_freq = %d" % int(args.freq))
     s = SpheroNode(args)
     s.start()
     s.spin()
