@@ -11,7 +11,7 @@ Installation is now based on catkin:
       git clone https://github.com/mmwise/sphero_ros
       cd <ws>
       catkin_make
-      catkin_make install
+      catkin_make --install
       source <ws>/install/setup.bash
       ...
 
